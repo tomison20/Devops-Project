@@ -13,23 +13,37 @@ const Navbar = () => {
         } catch (err) {
             console.error('Logout failed', err);
         } finally {
-            logout(); // Context update
+            logout();
             navigate('/login');
         }
     };
 
-    // Don't show Navbar on Login/Signup pages for a cleaner "Focus" mode? 
-    // User requested "accessible from a clean top navigation bar", so we KEEP it.
+    const isActive = (path) => location.pathname.startsWith(path);
+
+    const navLinkStyle = (path) => ({
+        textDecoration: 'none',
+        color: isActive(path) ? 'var(--color-primary)' : 'var(--color-secondary)',
+        fontWeight: isActive(path) ? '600' : '500',
+        fontSize: '0.875rem',
+        transition: 'color 0.2s',
+        padding: '0.3rem 0',
+        borderBottom: isActive(path) ? '2px solid var(--color-accent)' : '2px solid transparent',
+    });
+
+    const getDashboardPath = () => {
+        if (!user) return '/dashboard';
+        return `/dashboard/${user.role}`;
+    };
 
     return (
         <nav style={{
             background: 'var(--color-surface)',
             borderBottom: '1px solid var(--color-border)',
-            padding: '1rem 0', // Tighter padding for cleaner look
+            padding: '0.85rem 0',
             position: 'sticky',
             top: 0,
             zIndex: 1000,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
             <div className="container" style={{
                 display: 'flex',
@@ -39,7 +53,7 @@ const Navbar = () => {
                 {/* Brand */}
                 <Link to="/" style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: '1.5rem',
+                    fontSize: '1.4rem',
                     fontWeight: '700',
                     color: 'var(--color-primary)',
                     letterSpacing: '-0.025em',
@@ -48,67 +62,77 @@ const Navbar = () => {
                     alignItems: 'center',
                     gap: '0.5rem'
                 }}>
-                    <span style={{ fontSize: '1.75rem' }}>❖</span> SkillSync.
+                    <span style={{ fontSize: '1.6rem' }}>❖</span> SkillSync.
                 </Link>
 
                 {/* Navigation Links */}
-                <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
 
                     {user ? (
-                        /* Authenticated State */
                         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                            <Link to="/gigs" style={{
-                                textDecoration: 'none',
-                                color: location.pathname === '/gigs' ? 'var(--color-primary)' : 'var(--color-secondary)',
-                                fontWeight: location.pathname === '/gigs' ? '600' : '500',
-                                fontSize: '0.9rem',
-                                transition: 'color 0.2s'
-                            }}>Opportunities</Link>
+                            {/* Common link for all logged-in users */}
+                            <Link to="/gigs" style={navLinkStyle('/gigs')}>
+                                Opportunities
+                            </Link>
 
-                            <Link to="/volunteering" style={{
-                                textDecoration: 'none',
-                                color: location.pathname === '/volunteering' ? 'var(--color-primary)' : 'var(--color-secondary)',
-                                fontWeight: location.pathname === '/volunteering' ? '600' : '500',
-                                fontSize: '0.9rem',
-                                transition: 'color 0.2s'
-                            }}>Volunteering</Link>
+                            <Link to="/volunteering" style={navLinkStyle('/volunteering')}>
+                                Volunteering
+                            </Link>
 
-                            <div style={{ width: '1px', height: '24px', background: '#E2E8F0', margin: '0 0.5rem' }}></div>
+                            <div style={{ width: '1px', height: '20px', background: '#E2E8F0' }}></div>
 
-                            <Link to="/dashboard" style={{
-                                textDecoration: 'none',
-                                color: location.pathname === '/dashboard' ? 'var(--color-primary)' : 'var(--color-secondary)',
-                                fontWeight: location.pathname === '/dashboard' ? '600' : '500',
-                                fontSize: '0.9rem'
-                            }}>
+                            <Link to={getDashboardPath()} style={navLinkStyle('/dashboard')}>
                                 Dashboard
                             </Link>
 
-                            <button onClick={handleLogout} style={{
-                                background: 'none',
-                                border: '1px solid var(--color-border)',
-                                borderRadius: '4px',
-                                padding: '0.4rem 0.8rem',
-                                color: 'var(--color-error)',
-                                cursor: 'pointer',
-                                fontWeight: '500',
-                                fontSize: '0.85rem'
-                            }}>Sign Out</button>
+                            {/* User info + logout */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Link to="/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{
+                                        width: 30,
+                                        height: 30,
+                                        borderRadius: '50%',
+                                        background: user.role === 'organizer'
+                                            ? 'linear-gradient(135deg, #7C3AED, #6D28D9)'
+                                            : user.role === 'admin'
+                                                ? 'linear-gradient(135deg, #374151, #1F2937)'
+                                                : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                                        color: 'white',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                    }}>
+                                        {user.name?.charAt(0)?.toUpperCase()}
+                                    </div>
+                                </Link>
+
+                                <button onClick={handleLogout} style={{
+                                    background: 'none',
+                                    border: '1px solid var(--color-border)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    padding: '0.35rem 0.75rem',
+                                    color: 'var(--color-error)',
+                                    cursor: 'pointer',
+                                    fontWeight: '500',
+                                    fontSize: '0.8rem',
+                                    transition: 'all 0.2s',
+                                    fontFamily: 'var(--font-sans)'
+                                }}>Sign Out</button>
+                            </div>
                         </div>
                     ) : (
-                        /* Unauthenticated State */
                         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                             <Link to="/login" style={{
                                 color: 'var(--color-secondary)',
                                 fontWeight: '500',
                                 textDecoration: 'none',
-                                fontSize: '0.9rem'
+                                fontSize: '0.875rem'
                             }}>Log In</Link>
                             <Link to="/signup" className="btn btn-primary" style={{
-                                padding: '0.5rem 1.25rem',
-                                fontSize: '0.9rem',
-                                background: 'var(--color-primary)',
-                                color: '#fff'
+                                padding: '0.45rem 1.1rem',
+                                fontSize: '0.85rem',
                             }}>
                                 Get Started
                             </Link>

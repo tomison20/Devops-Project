@@ -13,6 +13,12 @@ import userRoutes from './routes/userRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import achievementRoutes from './routes/achievementRoutes.js';
 import participationRoutes from './routes/participationRoutes.js';
+import volunteerRoutes from './routes/volunteerRoutes.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -41,6 +47,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/participation', participationRoutes);
+app.use('/api/volunteers', volunteerRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {
     res.send('SkillSync API is running...');

@@ -17,7 +17,7 @@ const GigDetails = () => {
                 const userRes = await api.get('/auth/profile');
                 setUser(userRes.data);
 
-                const gigRes = await api.get(`/api/gigs/${id}`);
+                const gigRes = await api.get(`/gigs/${id}`);
                 setGig(gigRes.data);
 
                 // Fetch applications if organizer
@@ -38,7 +38,7 @@ const GigDetails = () => {
     const handleApply = async (e) => {
         e.preventDefault();
         try {
-            await api.post(`/api/gigs/${id}/apply`, { proposal });
+            await api.post(`/gigs/${id}/apply`, { proposal });
             alert('Application submitted successfully!');
             window.location.reload();
         } catch (error) { alert(error.response?.data?.message); }
@@ -46,7 +46,7 @@ const GigDetails = () => {
 
     const handleApproveApplication = async (bidId) => {
         try {
-            await api.put(`/api/gigs/${id}/approve-app/${bidId}`);
+            await api.put(`/gigs/${id}/approve-app/${bidId}`);
             alert('Student assigned to this opportunity.');
             window.location.reload();
         } catch (error) { alert(error.response?.data?.message); }
@@ -55,7 +55,7 @@ const GigDetails = () => {
     const handleSubmitWork = async (e) => {
         e.preventDefault();
         try {
-            await api.put(`/api/gigs/${id}/submit`, { link: submissionLink, description: 'Work submitted' });
+            await api.put(`/gigs/${id}/submit`, { link: submissionLink, description: 'Work submitted' });
             alert('Work submitted for verification.');
             window.location.reload();
         } catch (error) { alert(error.response?.data?.message); }
@@ -63,7 +63,7 @@ const GigDetails = () => {
 
     const handleVerifyWork = async () => {
         try {
-            await api.put(`/api/gigs/${id}/verify`);
+            await api.put(`/gigs/${id}/verify`);
             alert('Work verified and marked as completed!');
             window.location.reload();
         } catch (error) { alert(error.response?.data?.message); }

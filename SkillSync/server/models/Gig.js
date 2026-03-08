@@ -26,7 +26,12 @@ const gigSchema = new mongoose.Schema({
     },
 
     skillsRequired: [{ type: String }],
+    deliverables: [{ type: String }],
     category: { type: String, default: 'General' },
+
+    // Volunteer management
+    volunteersRequired: { type: Number, default: 0 },
+    certificateTemplate: { type: String },
 
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }

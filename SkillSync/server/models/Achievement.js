@@ -6,6 +6,7 @@ const achievementSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String },
     date: { type: Date, default: Date.now },
+    certificateLink: { type: String },
     createdAt: { type: Date, default: Date.now }
 });
 

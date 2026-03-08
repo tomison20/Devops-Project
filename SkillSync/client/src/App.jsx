@@ -18,6 +18,8 @@ import CreateGig from './pages/CreateGig';
 import CreateEvent from './pages/CreateEvent';
 import GigDetails from './pages/GigDetails';
 import Profile from './pages/Profile';
+import OrganizerVolunteers from './pages/OrganizerVolunteers';
+import StudentProfile from './pages/StudentProfile';
 
 function App() {
   return (
@@ -44,11 +46,13 @@ function App() {
               {/* Student Only Routes */}
               <Route element={<ProtectedRoute allowedRoles={['student']} />}>
                 <Route path="/dashboard/student" element={<StudentDashboard />} />
+                <Route path="/dashboard/student/profile" element={<StudentProfile />} />
               </Route>
 
               {/* Organizer Only Routes */}
               <Route element={<ProtectedRoute allowedRoles={['organizer', 'admin']} />}>
                 <Route path="/dashboard/organizer" element={<OrganizerDashboard />} />
+                <Route path="/dashboard/organizer/applications" element={<OrganizerVolunteers />} />
                 <Route path="/gigs/create" element={<CreateGig />} />
                 <Route path="/volunteering/create" element={<CreateEvent />} />
               </Route>

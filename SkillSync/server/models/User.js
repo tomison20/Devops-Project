@@ -40,6 +40,12 @@ const userSchema = new mongoose.Schema({
 
     portfolio: [portfolioItemSchema],
 
+    // Social Links
+    github: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+    twitter: { type: String, default: '' },
+    portfolioWebsite: { type: String, default: '' },
+
     // Verification
     isVerified: { type: Boolean, default: false }, // For "Institutional" trust
 

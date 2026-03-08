@@ -32,8 +32,8 @@ const CreateEvent = () => {
                 }]
             };
 
-            await api.post('/api/events', eventData);
-            navigate('/volunteering');
+            await api.post('/events', eventData);
+            navigate('/dashboard/organizer');
         } catch (error) {
             alert('Error creating event: ' + (error.response?.data?.message || 'Server Error'));
         }

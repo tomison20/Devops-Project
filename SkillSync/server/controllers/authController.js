@@ -4,7 +4,41 @@ import OrganizationRequest from '../models/OrganizationRequest.js';
 import jwt from 'jsonwebtoken';
 import axios from 'axios'; // For EmailJS REST API
 
-// ... (generateToken and sendWelcomeEmail remain unchanged)
+// Generate JWT and set as httpOnly cookie
+const generateToken = (res, userId) => {
+    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+    });
+
+    res.cookie('jwt', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    return token;
+};
+
+// Send welcome email via EmailJS REST API
+const sendWelcomeEmail = async (user) => {
+    try {
+        await axios.post('https://api.emailjs.com/api/v1.0/email/send', {
+            service_id: process.env.EMAILJS_SERVICE_ID,
+            template_id: process.env.EMAILJS_TEMPLATE_ID,
+            user_id: process.env.EMAILJS_PUBLIC_KEY,
+            accessToken: process.env.EMAILJS_PRIVATE_KEY,
+            template_params: {
+                to_name: user.name,
+                to_email: user.email,
+                message: `Welcome to SkillSync, ${user.name}! Your account has been created successfully.`,
+            },
+        });
+        console.log('Welcome email sent to:', user.email);
+    } catch (error) {
+        console.error('Failed to send welcome email:', error.message);
+    }
+};
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -36,7 +70,7 @@ export const registerUser = async (req, res) => {
             password,
             organization: organization._id,
             role: role || 'student',
-            userType: role === 'organizer' ? 'employer' : 'freelancer'
+            userType: role === 'organizer' ? 'organizer' : 'freelancer'
         });
 
         if (user) {
@@ -159,5 +193,34 @@ export const getUserProfile = async (req, res) => {
         }
     } catch (error) {
         res.status(res.statusCode === 200 ? 404 : res.statusCode).json({ message: error.message });
+    }
+};
+
+// @desc    Update user profile (social links, headline, bio, skills)
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { headline, bio, skills, github, linkedin, twitter, portfolioWebsite } = req.body;
+
+        if (headline !== undefined) user.headline = headline;
+        if (bio !== undefined) user.bio = bio;
+        if (skills !== undefined) user.skills = skills;
+        if (github !== undefined) user.github = github;
+        if (linkedin !== undefined) user.linkedin = linkedin;
+        if (twitter !== undefined) user.twitter = twitter;
+        if (portfolioWebsite !== undefined) user.portfolioWebsite = portfolioWebsite;
+
+        const updatedUser = await user.save();
+        const populated = await User.findById(updatedUser._id).select('-password').populate('organization', 'name uniqueCode');
+
+        res.json(populated);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
 };

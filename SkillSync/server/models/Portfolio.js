@@ -6,7 +6,9 @@ const portfolioSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String },
     link: { type: String },
+    projectLink: { type: String },
     image: { type: String },
+    portfolioPDF: { type: String },
     createdAt: { type: Date, default: Date.now }
 });
 

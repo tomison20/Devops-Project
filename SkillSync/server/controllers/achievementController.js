@@ -18,15 +18,31 @@ export const getMyAchievements = async (req, res) => {
 // @route   POST /api/achievements
 export const createAchievement = async (req, res) => {
     try {
-        const { title, description, date } = req.body;
+        const { title, description, date, certificateLink } = req.body;
         const achievement = await Achievement.create({
             student: req.user._id,
             organization: req.user.organization,
             title,
             description,
-            date
+            date,
+            certificateLink
         });
         res.status(201).json(achievement);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// @desc    Update achievement
+// @route   PUT /api/achievements/:id
+export const updateAchievement = async (req, res) => {
+    try {
+        const item = await Achievement.findOne({ _id: req.params.id, student: req.user._id });
+        if (!item) return res.status(404).json({ message: 'Achievement not found' });
+
+        Object.assign(item, req.body);
+        await item.save();
+        res.json(item);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

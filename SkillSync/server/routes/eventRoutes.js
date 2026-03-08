@@ -12,7 +12,7 @@ const router = express.Router();
 
 router.route('/')
     .post(protect, authorize('organizer', 'admin'), createEvent)
-    .get(getEvents);
+    .get(protect, getEvents);
 
 router.route('/:id')
     .get(getEventById);

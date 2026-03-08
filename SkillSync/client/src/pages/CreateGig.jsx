@@ -9,7 +9,8 @@ const CreateGig = () => {
         description: '',
         deadline: '',
         skillsRequired: '',
-        deliverables: ''
+        deliverables: '',
+        volunteersRequired: ''
     });
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,12 +18,13 @@ const CreateGig = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/api/gigs', { // Added /api prefix for consistency if needed, checking existing calls
+            await api.post('/gigs', {
                 ...formData,
                 skillsRequired: formData.skillsRequired.split(',').map(s => s.trim()),
-                deliverables: formData.deliverables.split('\n')
+                deliverables: formData.deliverables.split('\n'),
+                volunteersRequired: parseInt(formData.volunteersRequired) || 0
             });
-            navigate('/dashboard');
+            navigate('/dashboard/organizer');
         } catch (error) {
             alert('Error creating opportunity: ' + error.response?.data?.message);
         }
@@ -56,6 +58,11 @@ const CreateGig = () => {
                     <div className="input-group">
                         <label className="label">Expected Deliverables</label>
                         <textarea className="input" name="deliverables" rows="3" onChange={handleChange} required placeholder="What exactly should be submitted?" />
+                    </div>
+
+                    <div className="input-group">
+                        <label className="label">Volunteers Required (optional)</label>
+                        <input type="number" className="input" name="volunteersRequired" onChange={handleChange} placeholder="e.g. 10" min="0" />
                     </div>
 
                     <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>

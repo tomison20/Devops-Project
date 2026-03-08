@@ -9,12 +9,12 @@ const Profile = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const userRes = await api.get('/api/auth/profile');
+                const userRes = await api.get('/auth/profile');
                 setUser(userRes.data);
 
                 const [portRes, achRes] = await Promise.all([
-                    api.get('/api/portfolios'),
-                    api.get('/api/achievements')
+                    api.get('/portfolios'),
+                    api.get('/achievements')
                 ]);
                 setPortfolio(portRes.data);
                 setAchievements(achRes.data);

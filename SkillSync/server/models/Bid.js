@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const bidSchema = new mongoose.Schema({
     gig: { type: mongoose.Schema.Types.ObjectId, ref: 'Gig', required: true },
     freelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    amount: { type: Number, required: true },
+    amount: { type: Number, default: 0 },
     proposal: { type: String, required: true },
     status: {
         type: String,

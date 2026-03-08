@@ -11,7 +11,7 @@ const Volunteering = () => {
     useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const { data } = await api.get('/api/events');
+                const { data } = await api.get('/events');
                 setEvents(data);
             } catch (error) {
                 console.error(error);

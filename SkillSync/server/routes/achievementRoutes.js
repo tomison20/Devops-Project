@@ -2,6 +2,7 @@ import express from 'express';
 import {
     getMyAchievements,
     createAchievement,
+    updateAchievement,
     deleteAchievement
 } from '../controllers/achievementController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
@@ -13,6 +14,7 @@ router.route('/')
     .post(protect, authorize('student'), createAchievement);
 
 router.route('/:id')
+    .put(protect, authorize('student'), updateAchievement)
     .delete(protect, authorize('student'), deleteAchievement);
 
 export default router;

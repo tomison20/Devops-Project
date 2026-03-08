@@ -6,7 +6,7 @@ import Bid from '../models/Bid.js';
 // @access  Private (Organizer/Admin)
 export const createGig = async (req, res) => {
     try {
-        const { title, description, deadline, skillsRequired, deliverables } = req.body;
+        const { title, description, deadline, skillsRequired, deliverables, volunteersRequired } = req.body;
 
         const gig = await Gig.create({
             title,
@@ -14,6 +14,7 @@ export const createGig = async (req, res) => {
             deadline,
             skillsRequired,
             deliverables,
+            volunteersRequired: volunteersRequired || 0,
             organizer: req.user._id,
             organization: req.user.organization // Multi-tenant scoping
         });
@@ -81,7 +82,13 @@ export const getGigById = async (req, res) => {
             res.status(404);
             throw new Error('Gig not found');
         }
-        res.json(gig);
+
+        // Also fetch applications/bids for this gig
+        const bids = await Bid.find({ gig: gig._id })
+            .populate('freelancer', 'name email')
+            .sort({ createdAt: -1 });
+
+        res.json({ ...gig.toObject(), bids });
     } catch (error) {
         res.status(404).json({ message: error.message });
     }
@@ -252,3 +259,71 @@ export const deleteGig = async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 };
+
+// @desc    Get applications for a gig
+// @route   GET /api/gigs/:id/applications
+// @access  Private (Organizer)
+export const getApplicationsForGig = async (req, res) => {
+    try {
+        const gig = await Gig.findById(req.params.id);
+        if (!gig) {
+            return res.status(404).json({ message: 'Opportunity not found' });
+        }
+        if (gig.organizer.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const applications = await Bid.find({ gig: req.params.id })
+            .populate('freelancer', 'name email avatar headline skills')
+            .sort({ createdAt: -1 });
+
+        res.json(applications);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Reject an application
+// @route   PUT /api/gigs/:id/reject-app/:bidId
+// @access  Private (Organizer)
+export const rejectApplication = async (req, res) => {
+    try {
+        const gig = await Gig.findById(req.params.id);
+        const bid = await Bid.findById(req.params.bidId);
+
+        if (!gig || !bid) {
+            return res.status(404).json({ message: 'Opportunity or Application not found' });
+        }
+
+        if (gig.organizer.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        bid.status = 'rejected';
+        await bid.save();
+
+        res.json({ message: 'Application rejected', bid });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+// @desc    Get student's own applications
+// @route   GET /api/gigs/my-applications
+// @access  Private (Student)
+export const getMyApplications = async (req, res) => {
+    try {
+        const applications = await Bid.find({ freelancer: req.user._id })
+            .populate({
+                path: 'gig',
+                select: 'title description deadline status organizer organization',
+                populate: { path: 'organizer', select: 'name' }
+            })
+            .sort({ createdAt: -1 });
+
+        res.json(applications);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
