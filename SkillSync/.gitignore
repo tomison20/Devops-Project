@@ -1,0 +1,12 @@
+# Secrets
+.env
+server/.env
+client/.env
+
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
