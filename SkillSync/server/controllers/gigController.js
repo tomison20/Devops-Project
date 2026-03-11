@@ -99,7 +99,7 @@ export const getGigById = async (req, res) => {
 // @access  Private (Student)
 export const applyForGig = async (req, res) => {
     try {
-        const { proposal } = req.body;
+        const { proposal, studentClass, teacherName, teacherEmail } = req.body;
         const gig = await Gig.findById(req.params.id);
 
         if (!gig || gig.status !== 'open') {
@@ -110,7 +110,10 @@ export const applyForGig = async (req, res) => {
         const bid = await Bid.create({
             gig: gig._id,
             freelancer: req.user._id,
-            proposal: proposal
+            proposal: proposal,
+            class: studentClass || '',
+            teacherName: teacherName || '',
+            teacherEmail: teacherEmail || ''
         });
 
         res.status(201).json(bid);

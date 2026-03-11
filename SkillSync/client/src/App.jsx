@@ -26,6 +26,9 @@ import Network from './pages/Network';
 import StudentPublicProfile from './pages/StudentPublicProfile';
 import Inbox from './pages/Inbox';
 import Chat from './pages/Chat';
+import FAQ from './pages/FAQ';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 
 function App() {
   return (
@@ -41,6 +44,9 @@ function App() {
               <Route path="/request-college" element={<RequestOrganization />} />
               <Route path="/gigs" element={<Gigs />} />
               <Route path="/volunteering" element={<Volunteering />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
 
               {/* Base Protected Routes */}
               <Route element={<ProtectedRoute />}>

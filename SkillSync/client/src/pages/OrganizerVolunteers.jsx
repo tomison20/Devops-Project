@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import { FaUsers, FaFileExport, FaCertificate, FaCheck, FaTimes, FaEnvelope, FaClipboardList, FaFilePdf, FaCalendarAlt, FaTrash } from 'react-icons/fa';
+import { FaUsers, FaFileExport, FaCertificate, FaCheck, FaTimes, FaEnvelope, FaClipboardList, FaFilePdf, FaCalendarAlt, FaTrash, FaCog, FaSpinner } from 'react-icons/fa';
 
 const OrganizerVolunteers = () => {
     const { user } = useAuth();
@@ -20,6 +20,11 @@ const OrganizerVolunteers = () => {
     const [loading, setLoading] = useState(false);
     const [loadingOpps, setLoadingOpps] = useState(true);
     const [emailSending, setEmailSending] = useState({});
+    const [generatingCerts, setGeneratingCerts] = useState(false);
+    
+    // Certificate Customization States
+    const [certX, setCertX] = useState('');
+    const [certY, setCertY] = useState('');
 
     // --- EVENT STATES ---
     const [events, setEvents] = useState([]);
@@ -27,6 +32,7 @@ const OrganizerVolunteers = () => {
     const [eventDetails, setEventDetails] = useState(null);
     const [loadingEvents, setLoadingEvents] = useState(false);
     const [loadingEventDetails, setLoadingEventDetails] = useState(false);
+    const [eventGeneratingCerts, setEventGeneratingCerts] = useState(false);
 
     // Fetch organizer's opportunities for the dropdown
     useEffect(() => {
@@ -187,6 +193,19 @@ const OrganizerVolunteers = () => {
         }
     };
 
+    // Send Duty Leave Email for Event Volunteer
+    const handleEventDutyEmail = async (volunteerId) => {
+        setEmailSending(prev => ({ ...prev, [volunteerId]: true }));
+        try {
+            const { data } = await api.post(`/events/${selectedEventId}/volunteers/${volunteerId}/duty-leave-email`);
+            alert(data.message);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to send email');
+        } finally {
+            setEmailSending(prev => ({ ...prev, [volunteerId]: false }));
+        }
+    };
+
     // Upload Certificate Template
     const handleTemplateUpload = async (e) => {
         const file = e.target.files[0];
@@ -205,6 +224,65 @@ const OrganizerVolunteers = () => {
             alert('Certificate template uploaded!');
         } catch (error) {
             alert(error.response?.data?.message || 'Upload failed');
+        }
+    };
+
+    // Generate Certificates
+    const handleGenerateCertificates = async () => {
+        setGeneratingCerts(true);
+        try {
+            const { data } = await api.post(`/volunteers/opportunity/${selectedOpp}/generate-certificates`, {
+                textX: certX,
+                textY: certY
+            });
+            alert(data.message);
+            fetchApplications(selectedOpp);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to generate certificates');
+        } finally {
+            setGeneratingCerts(false);
+        }
+    };
+
+    // Upload Event Certificate Template
+    const handleEventTemplateUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('template', file);
+
+        try {
+            const { data } = await api.post(
+                `/events/${selectedEventId}/certificate-template`,
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            );
+            // Refresh event details to get the template
+            const res = await api.get(`/events/${selectedEventId}`);
+            setEventDetails(res.data);
+            alert('Event certificate template uploaded!');
+        } catch (error) {
+            alert(error.response?.data?.message || 'Upload failed');
+        }
+    };
+
+    // Generate Event Certificates
+    const handleGenerateEventCertificates = async () => {
+        setEventGeneratingCerts(true);
+        try {
+            const { data } = await api.post(`/events/${selectedEventId}/generate-certificates`, {
+                textX: certX,
+                textY: certY
+            });
+            alert(data.message);
+            // Refresh event details
+            const res = await api.get(`/events/${selectedEventId}`);
+            setEventDetails(res.data);
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to generate event certificates');
+        } finally {
+            setEventGeneratingCerts(false);
         }
     };
 
@@ -409,14 +487,46 @@ const OrganizerVolunteers = () => {
                                             </a>
                                         )}
                                         <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
-                                            {certificateTemplate ? 'Replace' : 'Upload'}
+                                            {certificateTemplate ? 'Replace Template' : 'Upload Template'}
                                             <input
                                                 type="file"
-                                                accept=".pdf,.png,.jpg,.jpeg"
+                                                accept=".png,.jpg,.jpeg"
                                                 onChange={handleTemplateUpload}
                                                 style={{ display: 'none' }}
                                             />
                                         </label>
+                                        {certificateTemplate && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="X (px)" 
+                                                    className="input" 
+                                                    style={{ width: '80px', padding: '0.4rem', fontSize: '0.8rem', minHeight: 'unset' }}
+                                                    value={certX}
+                                                    onChange={e => setCertX(e.target.value)}
+                                                />
+                                                <input 
+                                                    type="number" 
+                                                    placeholder="Y (px)" 
+                                                    className="input" 
+                                                    style={{ width: '80px', padding: '0.4rem', fontSize: '0.8rem', minHeight: 'unset' }}
+                                                    value={certY}
+                                                    onChange={e => setCertY(e.target.value)}
+                                                />
+                                                <button 
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={handleGenerateCertificates}
+                                                    disabled={generatingCerts}
+                                                    style={{ opacity: generatingCerts ? 0.7 : 1, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    {generatingCerts ? (
+                                                        <><FaSpinner className="spin" /> Generating...</>
+                                                    ) : (
+                                                        <><FaCog /> Generate Certs</>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -531,6 +641,66 @@ const OrganizerVolunteers = () => {
 
                             {selectedEventId && eventDetails && !loadingEventDetails && (
                                 <>
+                                    <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(to right, #F0F5EC, #FFFFFF)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                            <div>
+                                                <h3 style={{ margin: '0 0 0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <FaCertificate color="var(--color-primary)" /> Event Certificates
+                                                </h3>
+                                                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
+                                                    Upload a blank certificate template to automatically generate certs for all verified attendees.
+                                                </p>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                                <div className="file-upload-wrapper">
+                                                    <input 
+                                                        type="file" 
+                                                        id="event-cert-upload" 
+                                                        accept="image/*" 
+                                                        onChange={handleEventTemplateUpload}
+                                                        style={{ display: 'none' }}
+                                                    />
+                                                    <label htmlFor="event-cert-upload" className="btn btn-outline" style={{ cursor: 'pointer', margin: 0 }}>
+                                                        {eventDetails.certificateTemplate ? 'Update Template' : 'Upload Template'}
+                                                    </label>
+                                                </div>
+                                                
+                                                {eventDetails.certificateTemplate && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="X (px)" 
+                                                            className="input" 
+                                                            style={{ width: '80px', padding: '0.4rem', fontSize: '0.8rem', minHeight: 'unset' }}
+                                                            value={certX}
+                                                            onChange={e => setCertX(e.target.value)}
+                                                        />
+                                                        <input 
+                                                            type="number" 
+                                                            placeholder="Y (px)" 
+                                                            className="input" 
+                                                            style={{ width: '80px', padding: '0.4rem', fontSize: '0.8rem', minHeight: 'unset' }}
+                                                            value={certY}
+                                                            onChange={e => setCertY(e.target.value)}
+                                                        />
+                                                        <button 
+                                                            className="btn btn-primary" 
+                                                            onClick={handleGenerateEventCertificates}
+                                                            disabled={eventGeneratingCerts || !eventDetails.volunteers?.some(v => v.status === 'registered' || v.status === 'attended')}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        >
+                                                            {eventGeneratingCerts ? (
+                                                                <><FaSpinner className="spin" /> Generating...</>
+                                                            ) : (
+                                                                <><FaCog /> Generate Certs</>
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                         <h3>{eventDetails.title} Attributes</h3>
                                         <div style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)' }}>
@@ -546,7 +716,8 @@ const OrganizerVolunteers = () => {
                                                         <tr>
                                                             <th>Name</th>
                                                             <th>Email</th>
-                                                            <th>Headline</th>
+                                                            <th>Class</th>
+                                                            <th>Teacher Info</th>
                                                             <th>Event Role</th>
                                                             <th>Attendance</th>
                                                             <th style={{ textAlign: 'right' }}>Actions</th>
@@ -559,7 +730,15 @@ const OrganizerVolunteers = () => {
                                                                     <Link to={`/network/student/${vol.user?._id}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>{vol.user?.name || 'Student'}</Link>
                                                                 </td>
                                                                 <td style={{ fontSize: '0.85rem' }}>{vol.user?.email || 'N/A'}</td>
-                                                                <td style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{vol.user?.headline || 'N/A'}</td>
+                                                                <td style={{ fontSize: '0.85rem' }}>{vol.class || 'N/A'}</td>
+                                                                <td style={{ fontSize: '0.85rem' }}>
+                                                                    {vol.teacherName ? (
+                                                                        <>
+                                                                            <span style={{ display: 'block' }}>{vol.teacherName}</span>
+                                                                            <span style={{ color: 'var(--color-text-muted)' }}>{vol.teacherEmail}</span>
+                                                                        </>
+                                                                    ) : 'N/A'}
+                                                                </td>
                                                                 <td>{vol.role}</td>
                                                                 <td>
                                                                     <span className={`badge ${vol.status === 'attended' ? 'badge-success' : 'badge-status'}`}>
@@ -567,13 +746,21 @@ const OrganizerVolunteers = () => {
                                                                     </span>
                                                                 </td>
                                                                 <td style={{ textAlign: 'right' }}>
-                                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                                                                         <Link 
                                                                             to={`/network/student/${vol.user?._id}`} 
                                                                             className="btn btn-outline btn-sm"
                                                                         >
                                                                             Profile
                                                                         </Link>
+                                                                        <button
+                                                                            className="btn btn-outline btn-sm"
+                                                                            onClick={() => handleEventDutyEmail(vol._id)}
+                                                                            disabled={emailSending[vol._id] || !vol.teacherEmail}
+                                                                            style={{ opacity: (emailSending[vol._id] || !vol.teacherEmail) ? 0.6 : 1 }}
+                                                                        >
+                                                                            {emailSending[vol._id] ? '⏳ Sending...' : '✉ Duty Leave'}
+                                                                        </button>
                                                                         <button
                                                                             className="btn btn-outline btn-sm"
                                                                             style={{ color: '#EF4444', borderColor: '#EF4444' }}

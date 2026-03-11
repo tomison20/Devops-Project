@@ -9,6 +9,9 @@ const GigDetails = () => {
     const [user, setUser] = useState(null);
     const [applications, setApplications] = useState([]); // Renamed from bids
     const [proposal, setProposal] = useState('');
+    const [studentClass, setStudentClass] = useState('');
+    const [teacherName, setTeacherName] = useState('');
+    const [teacherEmail, setTeacherEmail] = useState('');
     const [submissionLink, setSubmissionLink] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -40,7 +43,12 @@ const GigDetails = () => {
     const handleApply = async (e) => {
         e.preventDefault();
         try {
-            await api.post(`/gigs/${id}/apply`, { proposal });
+            await api.post(`/gigs/${id}/apply`, { 
+                proposal, 
+                studentClass, 
+                teacherName, 
+                teacherEmail 
+            });
             alert('Application submitted successfully!');
             window.location.reload();
         } catch (error) { alert(error.response?.data?.message); }
@@ -158,6 +166,18 @@ const GigDetails = () => {
                         <form onSubmit={handleApply}>
                             <h4>Quick Apply</h4>
                             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '1rem' }}>Express your interest and mention relevant skills.</p>
+                            <div className="input-group">
+                                <label className="label">Class / Section</label>
+                                <input className="input" value={studentClass} onChange={e => setStudentClass(e.target.value)} placeholder="e.g. S6 CSE C" required />
+                            </div>
+                            <div className="input-group">
+                                <label className="label">Class Teacher Name</label>
+                                <input className="input" value={teacherName} onChange={e => setTeacherName(e.target.value)} placeholder="Class Teacher Name" required />
+                            </div>
+                            <div className="input-group">
+                                <label className="label">Class Teacher Email</label>
+                                <input type="email" className="input" value={teacherEmail} onChange={e => setTeacherEmail(e.target.value)} placeholder="Teacher's Email for Duty Leave" required />
+                            </div>
                             <div className="input-group">
                                 <label className="label">Proposal / Notes</label>
                                 <textarea className="input" rows="4" value={proposal} onChange={e => setProposal(e.target.value)} placeholder="Why are you a good fit for this?" required />

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
-import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaEnvelope } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaUsers, FaEnvelope, FaDownload } from 'react-icons/fa';
 
 const EventDetails = () => {
     const { id } = useParams();
     const [event, setEvent] = useState(null);
     const [user, setUser] = useState(null);
     const [selectedRole, setSelectedRole] = useState('');
+    const [studentClass, setStudentClass] = useState('');
+    const [teacherName, setTeacherName] = useState('');
+    const [teacherEmail, setTeacherEmail] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -34,7 +37,12 @@ const EventDetails = () => {
     const handleApply = async (e) => {
         e.preventDefault();
         try {
-            await api.post(`/events/${id}/register`, { role: selectedRole });
+            await api.post(`/events/${id}/register`, { 
+                role: selectedRole,
+                studentClass,
+                teacherName,
+                teacherEmail
+            });
             alert('Registered for event successfully!');
             window.location.reload();
         } catch (error) {
@@ -175,6 +183,19 @@ const EventDetails = () => {
                                     ))}
                                 </select>
                             </div>
+                            
+                            <div className="input-group">
+                                <label className="label">Class / Section</label>
+                                <input className="input" value={studentClass} onChange={e => setStudentClass(e.target.value)} placeholder="e.g. S6 CSE C" required />
+                            </div>
+                            <div className="input-group">
+                                <label className="label">Class Teacher Name</label>
+                                <input className="input" value={teacherName} onChange={e => setTeacherName(e.target.value)} placeholder="Class Teacher Name" required />
+                            </div>
+                            <div className="input-group">
+                                <label className="label">Class Teacher Email</label>
+                                <input type="email" className="input" value={teacherEmail} onChange={e => setTeacherEmail(e.target.value)} placeholder="Teacher's Email for Duty Leave" required />
+                            </div>
 
                             <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1rem' }} disabled={!selectedRole || event.roles?.every(r => r.filled >= r.capacity)}>
                                 Confirm Registration
@@ -200,6 +221,21 @@ const EventDetails = () => {
                                 )}
                             </div>
                             
+                            {userRegistration?.certificateUrl && (
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <a 
+                                        href={`http://localhost:5000${userRegistration.certificateUrl}`} 
+                                        download
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        className="btn btn-primary btn-sm" 
+                                        style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: '#10B981', borderColor: '#10B981' }}
+                                    >
+                                        <FaDownload /> Download Certificate
+                                    </a>
+                                </div>
+                            )}
+
                             {userRegistration?.attendanceHash && (
                                 <div style={{ background: 'white', padding: '1rem', borderRadius: '8px', border: '1px dashed #10B981', textAlign: 'center' }}>
                                     <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Your Attendance Hash</p>

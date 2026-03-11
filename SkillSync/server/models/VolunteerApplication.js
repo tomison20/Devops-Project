@@ -15,6 +15,7 @@ const volunteerApplicationSchema = new mongoose.Schema({
         enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
     },
+    certificateUrl: { type: String }, // For generated certificates
     appliedAt: { type: Date, default: Date.now }
 });
 

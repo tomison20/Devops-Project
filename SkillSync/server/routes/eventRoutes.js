@@ -8,7 +8,10 @@ import {
     updateEvent,
     deleteEvent,
     removeVolunteer,
-    exportEventVolunteers
+    exportEventVolunteers,
+    uploadCertificateTemplate,
+    generateCertificates,
+    sendDutyLeaveEmail
 } from '../controllers/eventController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
 
@@ -35,5 +38,14 @@ router.route('/:id/volunteers/:volunteerId')
 
 router.route('/:id/export')
     .get(protect, authorize('organizer', 'admin'), exportEventVolunteers);
+
+router.route('/:id/certificate-template')
+    .post(protect, authorize('organizer', 'admin'), uploadCertificateTemplate);
+
+router.route('/:id/generate-certificates')
+    .post(protect, authorize('organizer', 'admin'), generateCertificates);
+
+router.route('/:id/volunteers/:volunteerId/duty-leave-email')
+    .post(protect, authorize('organizer', 'admin'), sendDutyLeaveEmail);
 
 export default router;

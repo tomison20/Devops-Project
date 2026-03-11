@@ -12,6 +12,7 @@ const eventSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     location: { type: String, required: true },
     image: { type: String }, // Cover image for the event
+    certificateTemplate: { type: String }, // Path to the uploaded certificate template
 
     roles: [{
         name: String, // e.g., "Usher", "Photographer"
@@ -23,9 +24,13 @@ const eventSchema = new mongoose.Schema({
     volunteers: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         role: String, // Must match one of the roles.name
+        class: { type: String },
+        teacherName: { type: String },
+        teacherEmail: { type: String },
         status: { type: String, enum: ['registered', 'attended', 'cancelled'], default: 'registered' },
         registeredAt: { type: Date, default: Date.now },
-        attendanceHash: { type: String } // For QR verification
+        attendanceHash: { type: String }, // For QR verification
+        certificateUrl: { type: String } // Path to student's generated certificate
     }],
 
     status: { type: String, enum: ['upcoming', 'completed', 'cancelled'], default: 'upcoming' },

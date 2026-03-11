@@ -6,6 +6,7 @@ import {
     exportVolunteers,
     sendDutyLeaveEmail,
     uploadCertificateTemplate,
+    generateCertificates,
     upload
 } from '../controllers/volunteerController.js';
 import { protect, authorize } from '../middleware/authMiddleware.js';
@@ -35,5 +36,9 @@ router.route('/:id/duty-leave-email')
 // Upload certificate template
 router.route('/opportunity/:opportunityId/certificate-template')
     .post(protect, authorize('organizer', 'admin'), upload.single('template'), uploadCertificateTemplate);
+
+// Generate certificates
+router.route('/opportunity/:opportunityId/generate-certificates')
+    .post(protect, authorize('organizer', 'admin'), generateCertificates);
 
 export default router;

@@ -55,6 +55,7 @@ app.use('/api/messages', messageRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/public/certificates', express.static(path.join(__dirname, 'public', 'certificates')));
 
 app.get('/', (req, res) => {
     res.send('SkillSync API is running...');

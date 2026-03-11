@@ -1,8 +1,13 @@
 import Event from '../models/Event.js';
+import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import * as XLSX from 'xlsx';
-
-// @desc    Create a new event
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { Jimp, HorizontalAlign, VerticalAlign, loadFont } from 'jimp';
+import { SANS_64_BLACK } from 'jimp/fonts';// @desc    Create a new event
 // @route   POST /api/events
 // @access  Private (Organizer)
 export const createEvent = async (req, res) => {
@@ -66,7 +71,7 @@ export const getEventById = async (req, res) => {
 // @access  Private (Student)
 export const registerForEvent = async (req, res) => {
     try {
-        const { role } = req.body;
+        const { role, studentClass, teacherName, teacherEmail } = req.body;
         const event = await Event.findById(req.params.id);
 
         if (!event) {
@@ -91,6 +96,9 @@ export const registerForEvent = async (req, res) => {
         event.volunteers.push({
             user: req.user._id,
             role,
+            class: studentClass || '',
+            teacherName: teacherName || '',
+            teacherEmail: teacherEmail || '',
             attendanceHash: qrHash
         });
 
@@ -273,6 +281,220 @@ export const exportEventVolunteers = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
         res.send(buffer);
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Multer config for certificate template upload
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '..', 'uploads'));
+    },
+    filename: (req, file, cb) => {
+        const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'event-cert-template-' + unique + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Only images are allowed'));
+    }
+}).single('template');
+
+// @desc    Upload certificate template for an event
+// @route   POST /api/events/:id/certificate-template
+// @access  Private (Organizer)
+export const uploadCertificateTemplate = async (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) return res.status(400).json({ message: err.message });
+        
+        try {
+            const event = await Event.findById(req.params.id);
+            if (!event || (event.organizer.toString() !== req.user._id.toString() && !event.coOrganizers.some(id => id.toString() === req.user._id.toString()))) {
+                return res.status(403).json({ message: 'Not authorized' });
+            }
+
+            if (!req.file) {
+                return res.status(400).json({ message: 'No file uploaded' });
+            }
+
+            event.certificateTemplate = `/uploads/${req.file.filename}`;
+            await event.save();
+
+            res.json({
+                message: 'Certificate template uploaded',
+                certificateTemplate: event.certificateTemplate
+            });
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+        }
+    });
+};
+
+// @desc    Generate certificates for registered event volunteers
+// @route   POST /api/events/:id/generate-certificates
+// @access  Private (Organizer)
+export const generateCertificates = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('volunteers.user', 'name');
+        if (!event || (event.organizer.toString() !== req.user._id.toString() && !event.coOrganizers.some(id => id.toString() === req.user._id.toString()))) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        if (!event.certificateTemplate) {
+            return res.status(400).json({ message: 'No certificate template uploaded for this event' });
+        }
+
+        // Get all students who are registered or attended
+        const validVolunteers = event.volunteers.filter(v => v.status === 'registered' || v.status === 'attended');
+
+        console.log(`[DEBUG] Attempting generation. Total volunteers: ${event.volunteers.length}, Valid volunteers: ${validVolunteers.length}`);
+
+        if (validVolunteers.length === 0) {
+            console.log(`[DEBUG] Skipping because 0 valid volunteers. Volunteer statuses:`, event.volunteers.map(v => v.status));
+            return res.status(400).json({ message: 'No eligible volunteers found to generate certificates for.' });
+        }
+
+        const templatePath = path.join(__dirname, '..', event.certificateTemplate.replace(/^\//,''));
+        
+        if (!fs.existsSync(templatePath)) {
+            console.log('[DEBUG] Template missing at path:', templatePath);
+            return res.status(404).json({ message: 'Template file not found on server' });
+        }
+
+        const certsDir = path.join(__dirname, '..', 'public', 'certificates');
+        if (!fs.existsSync(certsDir)) {
+            fs.mkdirSync(certsDir, { recursive: true });
+        }
+
+        const font = await loadFont(SANS_64_BLACK);
+        let generatedCount = 0;
+        
+        const { textX, textY } = req.body;
+        const xOffset = textX && !isNaN(parseInt(textX)) ? parseInt(textX) : null;
+        const yOffset = textY && !isNaN(parseInt(textY)) ? parseInt(textY) : null;
+
+        for (const volunteer of validVolunteers) {
+            if (!volunteer.user || !volunteer.user.name) {
+                console.log('Skipping volunteer due to missing user or name:', volunteer);
+                continue;
+            }
+
+            try {
+                const image = await Jimp.read(templatePath);
+                
+                const isCustomPos = xOffset !== null || yOffset !== null;
+                
+                image.print({
+                    font,
+                    x: xOffset !== null ? xOffset : 0,
+                    y: yOffset !== null ? yOffset : 0,
+                    text: isCustomPos
+                        ? volunteer.user.name
+                        : { text: volunteer.user.name, alignmentX: HorizontalAlign.CENTER, alignmentY: VerticalAlign.MIDDLE },
+                    maxWidth: isCustomPos ? image.bitmap.width - (xOffset || 0) : image.bitmap.width,
+                    maxHeight: isCustomPos ? image.bitmap.height - (yOffset || 0) : image.bitmap.height
+                });
+
+                const filename = `cert_event_${volunteer._id}.png`;
+                const outputPath = path.join(certsDir, filename);
+
+                await image.write(outputPath);
+
+                volunteer.certificateUrl = `/public/certificates/${filename}`;
+                generatedCount++;
+            } catch (err) {
+                console.error(`Failed to generate cert for event volunteer ${volunteer.user.name}:`, err);
+            }
+        }
+
+        await event.save();
+
+        res.json({ 
+            message: `Successfully generated ${generatedCount} certificates for event volunteers.`,
+            count: generatedCount
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Send duty leave email to teacher for an event volunteer
+// @route   POST /api/events/:id/volunteers/:volunteerId/duty-leave-email
+// @access  Private (Organizer/Admin)
+export const sendDutyLeaveEmail = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('volunteers.user', 'name email');
+        
+        if (!event) {
+            return res.status(404).json({ message: 'Event not found' });
+        }
+
+        // Verify organizer owns the event
+        if (event.organizer.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        const volunteer = event.volunteers.id(req.params.volunteerId);
+        if (!volunteer) {
+            return res.status(404).json({ message: 'Volunteer not found in this event' });
+        }
+
+        if (!volunteer.teacherEmail) {
+            return res.status(400).json({ message: 'Teacher email is not provided for this volunteer' });
+        }
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: parseInt(process.env.SMTP_PORT) || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+
+        const studentName = volunteer.user ? volunteer.user.name : volunteer.name || 'Unknown Student';
+        
+        const mailOptions = {
+            from: process.env.SMTP_USER,
+            to: volunteer.teacherEmail,
+            subject: 'Event Volunteer Duty Leave Request',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #1E293B; border-bottom: 2px solid #3B82F6; padding-bottom: 10px;">
+                        Event Volunteer Duty Leave Request
+                    </h2>
+                    <p>Dear ${volunteer.teacherName || 'Teacher'},</p>
+                    <p>The student <strong>${studentName}</strong> will be volunteering for the event
+                    "<strong>${event.title}</strong>".</p>
+                    <p>Kindly grant duty leave for participation.</p>
+                    <div style="margin-top: 20px; padding: 15px; background: #F8FAFC; border-radius: 8px; border: 1px solid #E2E8F0;">
+                        <p style="margin: 0;"><strong>Student:</strong> ${studentName}</p>
+                        <p style="margin: 5px 0;"><strong>Class:</strong> ${volunteer.class || 'N/A'}</p>
+                        <p style="margin: 5px 0;"><strong>Event:</strong> ${event.title}</p>
+                        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
+                    </div>
+                    <p style="margin-top: 20px; color: #64748B; font-size: 0.85rem;">
+                        This is an automated message from SkillSync on behalf of the event organizers.
+                    </p>
+                </div>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        res.json({ message: 'Duty leave email sent successfully to ' + volunteer.teacherEmail });
+    } catch (error) {
+        console.error('Duty leave email error:', error);
         res.status(500).json({ message: error.message });
     }
 };

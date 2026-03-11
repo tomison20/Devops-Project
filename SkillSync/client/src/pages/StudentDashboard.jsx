@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import LogoLoop from '../components/UI/LogoLoop';
-import { FaGithub, FaLinkedin, FaGlobe, FaLink, FaCalendarAlt, FaBullseye, FaClipboardList, FaFolderOpen, FaBriefcase, FaFilePdf, FaTrash, FaTrophy, FaEnvelope } from 'react-icons/fa';
+import { FaGithub, FaLinkedin, FaGlobe, FaLink, FaCalendarAlt, FaBullseye, FaClipboardList, FaFolderOpen, FaBriefcase, FaFilePdf, FaTrash, FaTrophy, FaEnvelope, FaDownload } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
 
 const StudentDashboard = () => {
@@ -350,6 +350,18 @@ const StudentDashboard = () => {
                                                                     style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', color: '#4B5563', borderColor: '#D1D5DB' }}
                                                                 >
                                                                     <FaEnvelope /> Contact Organizer
+                                                                </a>
+                                                            )}
+                                                            {app.certificateUrl && (
+                                                                <a 
+                                                                    href={`http://localhost:5000${app.certificateUrl}`} 
+                                                                    download
+                                                                    target="_blank" 
+                                                                    rel="noreferrer" 
+                                                                    className="btn btn-primary btn-sm" 
+                                                                    style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#10B981', borderColor: '#10B981' }}
+                                                                >
+                                                                    <FaDownload /> Download Certificate
                                                                 </a>
                                                             )}
                                                             <Link to={`/gigs/${app.gig._id}`} className="btn btn-primary btn-sm" style={{ textDecoration: 'none' }}>
